@@ -82,7 +82,8 @@ const (
 const (
 	gcpMachineTypeFlag    = "gcp_machine_type"
 	gcpMinCPUPlatformFlag = "gcp_min_cpu_platform"
-	gcpBootDiskSizeGB     = "gcp_boot_disk_size_gb"
+	gcpBootDiskSizeGBFlag = "gcp_boot_disk_size_gb"
+	acceleratorFlag       = "gcp_accelerator"
 )
 
 const (
@@ -512,7 +513,7 @@ func hostCommand(opts *subCommandOpts) *cobra.Command {
 		opts.InitialConfig.DefaultService().Host.GCP.MachineType, gcpMachineTypeFlagDesc)
 	create.Flags().StringVar(&createFlags.GCP.MinCPUPlatform, gcpMinCPUPlatformFlag,
 		opts.InitialConfig.DefaultService().Host.GCP.MinCPUPlatform, gcpMinCPUPlatformFlagDesc)
-	create.Flags().Int64Var(&createFlags.GCP.BootDiskSizeGB, gcpBootDiskSizeGB,
+	create.Flags().Int64Var(&createFlags.GCP.BootDiskSizeGB, gcpBootDiskSizeGBFlag,
 		opts.InitialConfig.DefaultService().Host.GCP.BootDiskSizeGB, gcpBootDiskSizeGBDesc)
 	list := &cobra.Command{
 		Use:     "list",
@@ -541,6 +542,7 @@ func hostCommand(opts *subCommandOpts) *cobra.Command {
 }
 
 func cvdCommands(opts *subCommandOpts) []*cobra.Command {
+	acceleratorFlagValues := []string{}
 	// Create command
 	createFlags := &CreateCVDFlags{
 		ServiceFlags:   opts.ServiceFlags,
@@ -552,6 +554,11 @@ func cvdCommands(opts *subCommandOpts) []*cobra.Command {
 		Short:   "Creates a CVD",
 		PreRunE: preRunE(createFlags, &opts.ServiceFlags.Service, &opts.InitialConfig),
 		RunE: func(c *cobra.Command, args []string) error {
+			configs, err := parseAcceleratorFlag(acceleratorFlagValues)
+			if err != nil {
+				return err
+			}
+			createFlags.GCP.AcceleratorConfigs = configs
 			return runCreateCVDCommand(c, args, createFlags, opts)
 		},
 	}
@@ -644,6 +651,10 @@ func cvdCommands(opts *subCommandOpts) []*cobra.Command {
 		create.Flags().StringVar(f.ValueRef, name, f.Default, f.Desc)
 		create.MarkFlagsMutuallyExclusive(hostFlag, name)
 	}
+	create.Flags().Int64Var(&createFlags.GCP.BootDiskSizeGB, "host_"+gcpBootDiskSizeGBFlag,
+		opts.InitialConfig.DefaultService().Host.GCP.BootDiskSizeGB, gcpBootDiskSizeGBDesc)
+	create.Flags().StringSliceVar(&acceleratorFlagValues, acceleratorFlag,
+		opts.InitialConfig.DefaultService().Host.GCP.AcceleratorConfigs, acceleratorFlagDesc)
 	// List command
 	listFlags := &ListCVDsFlags{ServiceFlags: opts.ServiceFlags}
 	list := &cobra.Command{
