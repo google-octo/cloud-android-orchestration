@@ -44,6 +44,8 @@ const (
 	sessionAccessColumn      = "accessed_at"
 
 	sessionStateValidityHours = 48
+
+	contextTimeout = 60 * time.Second
 )
 
 // A database service that works with a Cloud Spanner database with the following schema:
@@ -67,7 +69,9 @@ func NewSpannerDBService(db string) *SpannerDBService {
 }
 
 func (dbs *SpannerDBService) FetchBuildAPICredentials(username string) ([]byte, error) {
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
 	client, err := spanner.NewClient(ctx, dbs.db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create db client: %w", err)
@@ -89,7 +93,9 @@ func (dbs *SpannerDBService) FetchBuildAPICredentials(username string) ([]byte, 
 }
 
 func (dbs *SpannerDBService) StoreBuildAPICredentials(username string, credentials []byte) error {
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
 	client, err := spanner.NewClient(ctx, dbs.db)
 	if err != nil {
 		return err
@@ -105,7 +111,9 @@ func (dbs *SpannerDBService) StoreBuildAPICredentials(username string, credentia
 }
 
 func (dbs *SpannerDBService) DeleteBuildAPICredentials(username string) error {
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
 	client, err := spanner.NewClient(ctx, dbs.db)
 	if err != nil {
 		return err
@@ -121,7 +129,9 @@ func (dbs *SpannerDBService) DeleteBuildAPICredentials(username string) error {
 }
 
 func (dbs *SpannerDBService) CreateOrUpdateSession(s session.Session) error {
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
 	client, err := spanner.NewClient(ctx, dbs.db)
 	if err != nil {
 		return err
@@ -135,7 +145,9 @@ func (dbs *SpannerDBService) CreateOrUpdateSession(s session.Session) error {
 }
 
 func (dbs *SpannerDBService) FetchSession(key string) (*session.Session, error) {
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
 	client, err := spanner.NewClient(ctx, dbs.db)
 	if err != nil {
 		return nil, err
@@ -164,7 +176,9 @@ func (dbs *SpannerDBService) FetchSession(key string) (*session.Session, error) 
 }
 
 func (dbs *SpannerDBService) DeleteSession(key string) error {
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
 	client, err := spanner.NewClient(ctx, dbs.db)
 	if err != nil {
 		return err
@@ -181,7 +195,9 @@ func (dbs *SpannerDBService) DeleteSession(key string) error {
 
 // TODO(jemoreira): Remove once sessions are used for more than just storing oauth2 states.
 func (dbs *SpannerDBService) deleteExpiredSessions() {
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
 	client, err := spanner.NewClient(ctx, dbs.db)
 	if err != nil {
 		log.Println("Failed to create db client to delete expired sessions")
