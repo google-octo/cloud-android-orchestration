@@ -34,7 +34,11 @@ Type = ""
 Type = "Fake"
 
 [DatabaseService]
-Type = "InMemory"
+Type = "Spanner"
+
+[DatabaseService.Spanner]
+InstanceName = "orchestrator"
+DatabaseName = "metadata"
 
 [InstanceManager]
 Type = "GCP"

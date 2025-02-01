@@ -15,6 +15,8 @@
 package database
 
 import (
+	"github.com/google/cloud-android-orchestration/pkg/app/accounts"
+	"github.com/google/cloud-android-orchestration/pkg/app/instances"
 	"github.com/google/cloud-android-orchestration/pkg/app/session"
 )
 
@@ -64,4 +66,8 @@ func (dbs *InMemoryDBService) DeleteSession(key string) error {
 		dbs.session = session.Session{}
 	}
 	return nil
+}
+
+func (dbs *InMemoryDBService) FetchUserInstance(user accounts.User) (*instances.HostInfo, error) {
+	return nil, nil
 }

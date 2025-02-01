@@ -20,6 +20,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/cloud-android-orchestration/pkg/app/accounts"
+	"github.com/google/cloud-android-orchestration/pkg/app/instances"
 	"github.com/google/cloud-android-orchestration/pkg/app/session"
 
 	"cloud.google.com/go/spanner"
@@ -42,6 +44,10 @@ const (
 	sessionKeyColumn         = "session_key"
 	sessionOAuth2StateColumn = "oauth2_state"
 	sessionAccessColumn      = "accessed_at"
+
+	instancesTable = "Instances"
+	hostColumn     = "host"
+	zoneColumn     = "zone"
 
 	sessionStateValidityHours = 48
 
@@ -221,4 +227,29 @@ func (dbs *SpannerDBService) deleteExpiredSessions() {
 	if err != nil {
 		log.Println("Failed to delete expired sessions: ", err)
 	}
+}
+
+func (dbs *SpannerDBService) FetchUserInstance(user accounts.User) (*instances.HostInfo, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
+	client, err := spanner.NewClient(ctx, dbs.db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create db client: %w", err)
+	}
+	defer client.Close()
+
+	row, err := client.Single().ReadRow(ctx, instancesTable, spanner.Key{user.Email()}, []string{hostColumn, zoneColumn})
+	if err != nil {
+		if spanner.ErrCode(err) == codes.NotFound {
+			// Not found is not an error
+			return &instances.HostInfo{}, nil
+		}
+		return nil, fmt.Errorf("error querying database: %w", err)
+	}
+
+	var hostInfo instances.HostInfo
+	err = row.ToStruct(&hostInfo)
+	log.Printf("spanner query: user=%s, host=%v\n", user.Email(), hostInfo)
+	return &hostInfo, err
 }

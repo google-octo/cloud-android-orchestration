@@ -15,6 +15,8 @@
 package database
 
 import (
+	"github.com/google/cloud-android-orchestration/pkg/app/accounts"
+	"github.com/google/cloud-android-orchestration/pkg/app/instances"
 	"github.com/google/cloud-android-orchestration/pkg/app/session"
 )
 
@@ -31,6 +33,8 @@ type Service interface {
 	FetchSession(key string) (*session.Session, error)
 	// Delete a session. Won't return error if the session doesn't exist.
 	DeleteSession(key string) error
+	//
+	FetchUserInstance(user accounts.User) (*instances.HostInfo, error)
 }
 
 type Config struct {
