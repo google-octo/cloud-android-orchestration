@@ -94,6 +94,9 @@ func (c *App) AddCorsHeaderIfNeeded(w http.ResponseWriter, r *http.Request) {
 func (c *App) Handler() http.Handler {
 	router := mux.NewRouter()
 
+	// WebRTC access routes
+	router.Handle("/v1/demo/{hostPath:.*}", c.Authenticate(c.getUserInstance))
+
 	// Instance Manager Routes
 	router.Handle("/v1/zones", c.Authenticate(c.listZones)).Methods("GET")
 	router.Handle("/v1/zones/{zone}/hosts", c.Authenticate(c.createHost)).Methods("POST")
@@ -191,6 +194,37 @@ func (a *App) injectBuildAPICredsIntoRequest(r *http.Request, user accounts.User
 			"The user must authorize the system to access the Build API on their behalf", nil)
 	}
 	r.Header.Set(headerNameHOBuildAPICreds, tk.AccessToken)
+	return nil
+}
+
+func (a *App) getUserInstance(w http.ResponseWriter, r *http.Request, user accounts.User) error {
+	hostInfo, err := a.databaseService.FetchUserInstance(user)
+	if err != nil || hostInfo == nil {
+		log.Println("Error getting user instance: ", err)
+		return err
+	}
+	if hostInfo.Zone == "" || hostInfo.Host == "" {
+		return fmt.Errorf("no host found for %s", user.Email())
+	}
+
+	hostPath := "/" + mux.Vars(r)["hostPath"]
+
+	if interceptFile, found := a.findInterceptFile(hostPath); found {
+		http.ServeFile(w, r, interceptFile)
+		return nil
+	}
+
+	hostClient, err := a.instanceManager.GetHostClient(hostInfo.Zone, hostInfo.Host)
+	if err != nil {
+		return err
+	}
+	if len(r.Header.Values(headerNameCOInjectBuildAPICreds)) != 0 {
+		if err := a.injectBuildAPICredsIntoRequest(r, user); err != nil {
+			return err
+		}
+	}
+	r.URL.Path = hostPath
+	hostClient.GetReverseProxy().ServeHTTP(w, r)
 	return nil
 }
 

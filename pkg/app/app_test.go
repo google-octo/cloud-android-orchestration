@@ -111,6 +111,33 @@ func (hc *testHostClient) GetReverseProxy() *httputil.ReverseProxy {
 	return httputil.NewSingleHostReverseProxy(hc.url)
 }
 
+func TestUserInstanceSucceeds(t *testing.T) {
+	controller := NewApp(&testInstanceManager{}, &testAccountManager{}, nil, nil, nil, "", nil, apiv1.InfraConfig{}, &config.Config{})
+	ts := httptest.NewServer(controller.Handler())
+	defer ts.Close()
+
+	res, _ := http.Get(ts.URL + "/v1/test")
+
+	rBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got apiv1.UserInstanceResponse
+	err = json.Unmarshal(rBody, &got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := apiv1.UserInstanceResponse{
+		Username: testUsername,
+	}
+	if diff := cmp.Diff(expected, got); diff != "" {
+		t.Errorf("response mismatch (-expected +got):\n%s", diff)
+	}
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("Expected OK status")
+	}
+}
+
 func TestListZonesSucceeds(t *testing.T) {
 	controller := NewApp(&testInstanceManager{}, &testAccountManager{}, nil, nil, nil, "", nil, apiv1.InfraConfig{}, &config.Config{})
 	ts := httptest.NewServer(controller.Handler())

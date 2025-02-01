@@ -72,3 +72,8 @@ type Config struct {
 	UNIX                              *UNIXIMConfig
 	Docker                            *DockerIMConfig
 }
+
+type HostInfo struct {
+	Host string
+	Zone string
+}
